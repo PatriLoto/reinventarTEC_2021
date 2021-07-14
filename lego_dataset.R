@@ -1,11 +1,9 @@
 
-# Falta ejercicio con tidyr
-# Falta pasarlo a rmarkdown
-
-# Instalación de paquetes
-#install.packages("tidyverse")
-#install.packages("scales")
-#install.packages("hrbrthemes")
+# Instalación de paquetes:
+# Si es la primera vez que utilizas, necesitas instalar los paquetes a continuación:
+install.packages("tidyverse")
+install.packages("scales")
+install.packages("hrbrthemes")
 
 
 # Carga de Librerías que utilizaremos en nuestro análisis
@@ -16,10 +14,11 @@ library(hrbrthemes)
 
 # Objetivo Principal del paquete readR(): Importar datos
 # Lectura del dataset de una url
-legosets <- read_csv("https://raw.githubusercontent.com/seankross/lego/master/data-tidy/legosets.csv")
+#legosets <- read_csv("https://raw.githubusercontent.com/seankross/lego/master/data-tidy/legosets.csv")
+legosets <- read_csv("legosets.csv")  
 View(legosets)
 
-# Objetivo Principal del paquete dplyr(): explorar y trasnformar datos
+# Objetivo Principal del paquete dplyr(): explorar y transformar datos
 # Algunas funciones  básicas: head(), tail(), glimpse(), summary()
 
 # head() y tail(): para obtener primeras y últimas filas
@@ -45,57 +44,46 @@ legosets %>%
 # Objetivo: quiero transformar los nombres de columnas a minúsculas
 # y seleccionar solo las filas de interés
 
-#Opción 1:
-legosets %>% select_all(tolower) %>%
-  select(-c(item_number,image_url, availability, ends_with("msrp")))
-
-#Opción 2:
-legosets %>% select_all(tolower) %>%
+# Utilizo la sentencia select:
+legosets_mini <- legosets %>% select_all(tolower) %>%
   select(name, year,contains("theme"), pieces, minifigures, usd_msrp)
-
+legosets_mini
 # También podría utilizar clean_names de janitor para pasar a minúsculas los nombres de columnas
 # legosets <- legosets %>% clean_names()
 
 
-# si quisieramos reordenar las filas, colocando año al principio:
-legosets %>%
+# Si quisieramos reordenar las filas, colocando 'year' al principio:
+legosets_mini %>%
   select(year, name, everything()) %>%
   head(5)
 
-
-# REVISION
-# legosets %>%
-#   distinct(name) %>% arrange(name) %>% view()
-
-
 #-----------------------------------
-# pregunta 1: ¿Cuáles son los legos más caros (en doláres) por año? Teniendo en cuenta datos a partir del 2000
+# pregunta 1: ¿Cuáles son los legos más caros por categoría? Teniendo en cuenta datos a partir del 2010
 # voy resolviendo por pasos
 #1-
+legosets_mini %>% 
+    filter(year == 2015) %>% arrange(year,theme)  %>% view()
+#2- En la columna precio hay valores na (valores no disponibles) entonces los filtro:
 legosets %>% 
   select(name, year,contains("theme"), pieces, minifigures, usd_msrp) %>% 
-    filter(year >= 2000) %>% arrange(year)
-#2- 
-legosets %>% 
-  select(name, year,contains("theme"), pieces, minifigures, usd_msrp) %>% 
-  filter(year >= 2000) %>% arrange(desc(year, usd_msrp)) %>% view()
+  filter(year  == 2015) %>% arrange(desc(year, usd_msrp)) %>% view()
 #3-
-legosets %>% 
-  select(name, year,contains("theme"), pieces, minifigures, usd_msrp) %>% 
-  filter(year >= 2000 & !is.na(usd_msrp)) %>% group_by(year, theme) %>% 
-  summarise(mas_caro = max(usd_msrp)) %>% top_n(5, mas_caro) %>%  arrange(desc(mas_caro)) %>%
-  view()
+legosets_mini %>% 
+  filter(year  == 2015 & !is.na(usd_msrp)) %>% group_by(theme) %>% 
+  summarise(mas_caro = max(usd_msrp)) %>% top_n(5) %>% arrange(desc(mas_caro)) %>% 
+view()
 
 #-------------------------------------------------
-# pregunta 2: ¿Cuál es el precio promedio por theme?
-legosets %>%  filter(year >= 2010 & !is.na(usd_msrp)) %>% 
+# pregunta 2: ¿Cuál es el precio promedio por theme? Teniendo en cuenta los datos a partir de 2010
+
+legosets_mini %>%  filter(year >= 2010 & !is.na(usd_msrp)) %>% 
 group_by(theme) %>%
-  summarise(Price_promedio = mean(usd_msrp))
+  summarise(precio_prom = mean(usd_msrp)) %>% view()
 
 
 #--------------------------------------------------
 # stringR
-# Pregunta 3: cuá
+# Pregunta 3: cuál es la cantidad de subcategorías que tiene el tema de Star wars
 subtheme_S_w <- legosets %>%
   filter(theme == "Star Wars") %>%
   count(subtheme, sort = TRUE) 
@@ -122,39 +110,6 @@ ggplot(data= s_wars, aes(x= subtheme, fill= subtheme)) +
    scale_color_viridis_d(option = "A") +
    theme_ipsum_pub()
 
- 
- #--------------------------------------------------------------
- # PREGUNTA 4: ¿cómo varía el precio a lo largo de los años? Podría unirla a la 1
- # calculamos precio promedio
- # calculamos la media de precios
- 
- library(dplyr)
- # precio promedio por año 
- avg_price_per_year <- legosets %>%
-   filter(!is.na(usd_msrp)) %>%
-   group_by(year) %>%
-   summarise(Price = mean(usd_msrp)) %>% view()
- avg_price_per_year
- 
- med_price_per_year <- legosets %>%
-   filter(!is.na(usd_msrp)) %>%
-   group_by(year) %>%
-   do(data.frame(Price = median(.$usd_msrp)))
- med_price_per_year
- 
- # Gráfico de evolución: pasarlo a tidyverse
- plot(avg_price_per_year, type = "l", col = "blue", 
-      main = "Lego set prices over time", ylim = c(0, max(avg_price_per_year$Price)))
- points(med_price_per_year, type = "l", col = "red")
- legend("topleft", inset=c(0.2,0), legend=c("Average","Median"), lty=c(1,1), col=c("blue", "red"))
- 
- #--------------------------------------------------------
- # # revisar
-# legosets %>% 
-#   select(name, year,contains("theme"), pieces, minifigures, usd_msrp) %>% 
-#   filter(year == 2015) %>% filter(str_detect(theme,"S|star\sW|wars(\w+)")) %>% group_by(name)  %>%
-#   view()
-# S|s(\w+) wal(\w+)
 
  
  # GRAFICOS
@@ -168,6 +123,34 @@ p3 <- ggplot(data= legosets %>% filter(year >= 2010)) +
   labs(title = "Precios según piezas", color= "año", size= "minifiguras") +
   theme_ipsum_pub()
 p3
+
+# HASTA ACÁ
+
+# PREGUNTA 4: ¿cómo varía el precio a lo largo de los años? Podría unirla a la 1
+# calculamos precio promedio
+# calculamos la media de precios
+
+library(dplyr)
+# precio promedio por año 
+avg_price_per_year <- legosets %>%
+  filter(!is.na(usd_msrp)) %>%
+  group_by(year) %>%
+  summarise(Price = mean(usd_msrp)) %>% view()
+avg_price_per_year
+
+med_price_per_year <- legosets %>%
+  filter(!is.na(usd_msrp)) %>%
+  group_by(year) %>%
+  do(data.frame(Price = median(.$usd_msrp)))
+med_price_per_year
+
+# Gráfico de evolución: pasarlo a tidyverse
+plot(avg_price_per_year, type = "l", col = "blue", 
+     main = "Lego set prices over time", ylim = c(0, max(avg_price_per_year$Price)))
+points(med_price_per_year, type = "l", col = "red")
+legend("topleft", inset=c(0.2,0), legend=c("Average","Median"), lty=c(1,1), col=c("blue", "red"))
+
+#--------------------------------------------------------
 
 
 # para obtener la década utilizamos mutate
@@ -220,5 +203,9 @@ ggplot(legos) + geom_bar(aes(Theme2)) +
 # modelo: regresión lineal
 # precio en función de cantida de piezas
 
-# Rmarkdown
-# salida de un breve análisis
+# # revisar
+# legosets %>% 
+#   select(name, year,contains("theme"), pieces, minifigures, usd_msrp) %>% 
+#   filter(year == 2015) %>% filter(str_detect(theme,"S|star\sW|wars(\w+)")) %>% group_by(name)  %>%
+#   view()
+# S|s(\w+) wal(\w+)

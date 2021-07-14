@@ -15,7 +15,7 @@ library(hrbrthemes)
 # Objetivo Principal del paquete readR(): Importar datos
 # Pueden leer el dataset de la url o descargarse el .csv, y luego leerlo:
 #legosets <- read_csv("https://raw.githubusercontent.com/seankross/lego/master/data-tidy/legosets.csv")
-legosets <- read_csv("legosets.csv")  
+legosets <- read_csv("datos/legosets.csv")  
 View(legosets)
 
 # Objetivo Principal del paquete dplyr(): explorar y transformar datos
@@ -106,17 +106,19 @@ lego_marvel %>% view()
 
 
 # convierto a factor la variable 'subtheme'
-lego_marvel <- lego_marvel %>% mutate(subtheme= as_factor(subtheme))
+lego_marvel <- lego_marvel %>% mutate(subtheme= as_factor(subtheme)) %>%  
+  group_by(subtheme) %>% summarise(cant_piezas= sum(pieces)) %>% 
+view()
 # verifico con str:
 str(lego_marvel$subtheme)
 
 #-----------------------------------
 # Gráfico con sets de Marvel
 #-----------------------------------
- ggplot(data= lego_marvel, aes(x= reorder(subtheme,pieces), y=pieces, fill= subtheme)) +
+ ggplot(data= lego_marvel, aes(x= reorder(subtheme,desc(cant_piezas)), y=cant_piezas, fill= subtheme)) +
   geom_col() +
    coord_flip() +
-   scale_color_viridis_d(option = "A") +
+   scale_fill_viridis_d(option = "A") +
    labs(title = "Sets de Marvel y piezas", fill= "Sets", y= "cantidad de piezas", x= " ") +
    theme_ipsum_pub()
 
